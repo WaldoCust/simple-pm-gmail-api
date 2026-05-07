@@ -30,6 +30,19 @@ export default async function handler(req, res) {
 
   try {
 
+    console.log("SEND EMAIL API HIT");
+
+    console.log(
+      "HAS REFRESH TOKEN:",
+      !!process.env.GOOGLE_REFRESH_TOKEN
+    );
+
+    if (!process.env.GOOGLE_REFRESH_TOKEN) {
+      throw new Error(
+        "GOOGLE_REFRESH_TOKEN missing"
+      );
+    }
+
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
@@ -40,12 +53,27 @@ export default async function handler(req, res) {
       refresh_token: process.env.GOOGLE_REFRESH_TOKEN
     });
 
+    // FORCE ACCESS TOKEN REFRESH
+    const accessToken =
+      await oauth2Client.getAccessToken();
+
+    console.log(
+      "ACCESS TOKEN:",
+      !!accessToken.token
+    );
+
     const gmail = google.gmail({
       version: "v1",
       auth: oauth2Client
     });
 
     const { to, subject, html } = req.body;
+
+    if (!to || !subject || !html) {
+      throw new Error(
+        "Missing email fields"
+      );
+    }
 
     const message = [
       "Content-Type: text/html; charset=UTF-8",
@@ -62,20 +90,27 @@ export default async function handler(req, res) {
       .replace(/\//g, "_")
       .replace(/=+$/, "");
 
-    await gmail.users.messages.send({
-      userId: "me",
-      requestBody: {
-        raw: encodedMessage
-      }
-    });
+    const result =
+      await gmail.users.messages.send({
+        userId: "me",
+        requestBody: {
+          raw: encodedMessage
+        }
+      });
+
+    console.log("EMAIL SENT");
 
     return res.status(200).json({
-      success: true
+      success: true,
+      result
     });
 
   } catch (err) {
 
-    console.error(err);
+    console.error(
+      "SEND EMAIL ERROR:",
+      err
+    );
 
     return res.status(500).json({
       success: false,
