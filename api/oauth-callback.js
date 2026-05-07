@@ -14,12 +14,11 @@ export default async function handler(req, res) {
 
     const { tokens } = await oauth2Client.getToken(code);
 
-    console.log("TOKENS:", JSON.stringify(tokens, null, 2));
+    console.log("TOKENS:", tokens);
 
-    return res.send(`
-      <h1>OAuth Success</h1>
-      <pre>${JSON.stringify(tokens, null, 2)}</pre>
-    `);
+    return res.redirect(
+      "https://thesimplebrands.com/email-builder?gmail=connected"
+    );
 
   } catch (err) {
 
